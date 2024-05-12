@@ -1,0 +1,23 @@
+import java.util.List;
+
+public class GameController {
+    public static void main(String[] args) {
+        List<Card> deck = Card.getStandardDeck();
+        Card.printDeck(deck);
+
+        System.out.println("------------------------------------");
+
+        List<List<Card>> hands = MacaoGame.Initialize.getHands(4, 5, deck);
+        Player[] players = MacaoGame.Initialize.assignToPlayer(4, hands);
+        MacaoGame.Initialize.printPlayers(players);
+
+        System.out.println("------------------------------------");
+
+        List<Card> remainingCards = deck.subList(hands.size()*5, deck.size());
+        Card.printDeck(remainingCards, "Remaining Cards: ", 2);
+
+        System.out.println("------------------------------------");
+        int count = 0;
+        MacaoGame.callPlayers(hands, remainingCards, count);
+    }
+}
