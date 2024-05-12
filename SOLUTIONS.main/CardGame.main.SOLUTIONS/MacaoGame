@@ -1,0 +1,52 @@
+import java.util.*;
+
+public class MacaoGame {
+    static class Initialize {
+        public static List<List<Card>> getHands(int playerCount, int cardsPerHand, List<Card> deck) {
+            Collections.shuffle(deck);
+            List<List<Card>> cards = Collections.nCopies(playerCount, null);
+            List<List<Card>> newCards = new ArrayList<>(cards.size());
+
+            for (int i = 0; i < playerCount; ++i) {
+                List<Card> hand = deck.subList(i*5, (i+1)*5);
+                newCards.add(hand);
+            }
+            return newCards;
+        }
+
+        public static Player[] assignToPlayer(int playerCount, List<List<Card>> hands) {
+            Player[] players = new Player[playerCount];
+            for (int i = 0; i < playerCount; ++i) players[i] = new Player("Player" + (playerCount - (playerCount - i)+1), hands.get(i));
+
+            return players;
+        }
+
+        public static void printPlayers(Player[] players) {
+            Arrays.asList(players).forEach(p -> Comparator.comparing(Card::rank).thenComparing(Card::suit));
+            Arrays.asList(players).forEach(System.out::println);
+        }
+    }
+
+    public static void start(List<Card> hand, List<Card> remaining, int count) {
+        Card currCard = remaining.get(0);
+        if (Collections.frequency(hand, currCard) > 1) {
+            hand.remove(currCard);
+            remaining.remove(0);
+            System.out.println("Macao! " + hand);
+        } else {
+            for (Card c : hand) {
+                if ((currCard.toString().charAt(1) + "").equals(c.toString().charAt(1) + "") || (currCard.toString().charAt(0) + "").equals(c.toString().charAt(0) + "")) {
+                    count += 1;
+                    hand.remove(c);
+                    System.out.println("Macao! " + hand);
+                }
+            }
+        }
+    }
+
+    public static void callPlayers(List<List<Card>> players, List<Card> remaining, int count) {
+        for (int i = 0; i < players.size(); ++i) {
+            start(players.get(i), remaining, count);
+        }
+    }
+}
