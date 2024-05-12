@@ -1,1 +1,16 @@
+import java.util.List;
 
+public class Player {
+    public String name;
+    public List<Card> hand;
+
+    public Player(String name, List<Card> hand) {
+        this.name = name;
+        this.hand = hand;
+    }
+
+    @Override
+    public String toString() {
+        return "%-7s: %s".formatted(name, hand);
+    }
+}
