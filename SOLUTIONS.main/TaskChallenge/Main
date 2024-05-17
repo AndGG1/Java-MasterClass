@@ -1,1 +1,57 @@
+import java.util.*;
 
+public class Main {
+    public static void main(String[] args) {
+        Set<Task> tasks = TaskData.getTasks("all");
+        sortAndPrint("All Tasks", tasks);
+        Comparator<Task> sortByPriority = Comparator.comparing(Task::getPriority).
+                thenComparing(Task::getAssigned);
+
+        Set<Task> annsTasks = TaskData.getTasks("Ann");
+        Set<Task> bobsTasks = TaskData.getTasks("Bob");
+        Set<Task> carolsTasks = TaskData.getTasks("Carol");
+        List<Set<Task>> sets = List.of(annsTasks, bobsTasks, carolsTasks);
+
+        Set<Task> assignedTasks = Task.getUnion(sets);
+        sortAndPrint("Assigned Tasks", assignedTasks);
+
+        Set<Task> everyTask = Task.getUnion(List.of(tasks, assignedTasks));
+        sortAndPrint("The True All Tasks", everyTask);
+
+        Set<Task> missingTasks = Task.getDifference(everyTask, tasks);
+        sortAndPrint("Missing Tasks", missingTasks);
+
+        Set<Task> unassignedTasks = Task.getDifference(tasks, assignedTasks);
+        sortAndPrint("Unassigned Tasks", unassignedTasks);
+
+        Set<Task> overlap = Task.getUnion(List.of(
+           Task.getIntersection(annsTasks, bobsTasks),
+           Task.getIntersection(carolsTasks, bobsTasks),
+           Task.getIntersection(annsTasks, carolsTasks)
+        ));
+        sortAndPrint("Assigned to Multiples", overlap, sortByPriority);
+
+        List<Task> overlapping = new ArrayList<>();
+        for (Set<Task> s : sets) {
+            Set<Task> dupes = Task.getIntersection(s, overlap);
+            overlapping.addAll(dupes);
+        }
+
+        Comparator<Task> priorityNatural = sortByPriority.thenComparing(Comparator.naturalOrder());
+        sortAndPrint("Overlapping", overlapping, priorityNatural);
+    }
+    private static void sortAndPrint(String header, Collection<Task> collection) {
+        sortAndPrint(header, collection, null);
+    }
+    private static void sortAndPrint(String header, Collection<Task> collection, Comparator<Task> sorter) {
+
+        String lineSeparator = "_".repeat(90);
+        System.out.println(lineSeparator);
+        System.out.println(header);
+        System.out.println(lineSeparator);
+
+        List<Task> list = new ArrayList<>(collection);
+        list.sort(sorter);
+        list.forEach(System.out::println);
+    }
+}
