@@ -1,0 +1,34 @@
+public class BookingAgent {
+    public static void main(String[] args) {
+        Theatre rodgersNYC = new Theatre("Richard Rodgers", 10, 15);
+        rodgersNYC.reserveSeats(0, 10);
+        rodgersNYC.reserveSeats(45, 60);
+        rodgersNYC.reserveSeats(75, 80);
+        //rodgersNYC.reserveSeats(60, 30);
+ 
+        rodgersNYC.reserveSeat('B', 3);
+        rodgersNYC.reserveSeat('C', 13);
+        rodgersNYC.reserveSeat('Z', 9);
+ 
+        rodgersNYC.printSeatMap();
+    }
+}
+ 
+//Output (looks better in IntelliJ)
+ 
+/*
+Could not find Z9: F
+--------------------------------------------------------------------------------
+Richard Rodgers Theatre
+--------------------------------------------------------------------------------
+A1: A   A2: A   A3: A   A4: A   A5: A   A6: A   A7: A   A8: A   A9: A   A10: A   
+B1: F   B2: F   B3: A   B4: F   B5: F   B6: F   B7: F   B8: F   B9: F   B10: F   
+C1: F   C2: F   C3: F   C4: F   C5: F   C6: F   C7: A   C8: F   C9: F   C10: F   
+D1: F   D2: F   D3: F   D4: F   D5: F   D6: F   D7: F   D8: F   D9: F   D10: F   
+E1: F   E2: F   E3: F   E4: F   E5: F   E6: A   E7: A   E8: A   E9: A   E10: A   
+F1: A   F2: A   F3: A   F4: A   F5: A   F6: A   F7: A   F8: A   F9: A   F10: A   
+G1: F   G2: F   G3: F   G4: F   G5: F   G6: F   G7: F   G8: F   G9: F   G10: F   
+H1: F   H2: F   H3: F   H4: F   H5: F   H6: A   H7: A   H8: A   H9: A   H10: A   
+I1: F   I2: F   I3: F   I4: F   I5: F   I6: F   I7: F   I8: F   I9: F   I10: F   
+J1: F   J2: F   J3: F   J4: F   J5: F   J6: F   J7: F   J8: F   J9: F   J10: F   
+*/
