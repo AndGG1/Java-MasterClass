@@ -1,0 +1,83 @@
+import java.util.*;
+ 
+public class Theatre {
+    private final String name;
+    private final int seatsPerRow;
+    private final int numberOfRows;
+    private final NavigableSet<Seat> seats;
+    private final Set<Integer> reservedSeats = new HashSet<>();
+ 
+    public Theatre(String name, int numberOfRows, int seatsPerRow) {
+        this.name = name;
+        this.seatsPerRow = Math.min(seatsPerRow, 50);
+        this.numberOfRows = Math.min(numberOfRows, 25);
+        seats = createSeats();
+    }
+    private TreeSet<Seat> createSeats() {
+        int totalSeats = numberOfRows * seatsPerRow;
+        TreeSet<Seat> newTreeSet = new TreeSet<>(Comparator
+                .comparing(Seat::getRow)
+                .thenComparing(Seat::getSeatNumber));
+ 
+        for (int i = 0, rowChar = 65, seatNumber = 0; i < totalSeats; ++i) {
+            newTreeSet.add(new Seat((char) rowChar, ++seatNumber, false));
+            if (seatNumber == seatsPerRow) {
+                ++rowChar;
+                seatNumber = 0;
+            }
+        }
+        return newTreeSet;
+    }
+ 
+    public void printSeatMap() {
+        System.out.println("-".repeat(numberOfRows*seatsPerRow-20));
+        System.out.println(name + " Theatre");
+        System.out.println("-".repeat(numberOfRows*seatsPerRow-20));
+ 
+        int seatCount = 0;
+        for (Seat seat : seats) {
+            if (reservedSeats.contains(seatCount)) seat.isReserved = true;
+            System.out.print(seat + "   ");
+            if ((seatCount+1) % seatsPerRow == 0) System.out.println();
+            ++seatCount;
+        }
+    }
+ 
+    public void reserveSeat(char row, int seat) {
+        Seat reservedSeat = new Seat(row, seat, false);
+        if (seats.contains(reservedSeat)) {
+            seats.ceiling(reservedSeat).isReserved = true;
+        } else System.out.println("Could not find " + reservedSeat);
+    }
+    public void reserveSeats(int first, int last) throws IllegalArgumentException {
+        if (first >= 0 && last > first && last <= numberOfRows * seatsPerRow) {
+            for (int i = first; i < last; ++i) {
+                reservedSeats.add(i);
+            }
+        } else throw new IllegalArgumentException("Invalid seat range for reservation in " + name);
+    }
+ 
+    static class Seat {
+        char row;
+        int currSeat;
+        boolean isReserved;
+ 
+        public Seat(char row, int currSeat, boolean isReserved) {
+            this.row = row;
+            this.currSeat = currSeat;
+            this.isReserved = isReserved;
+        }
+ 
+        public int getSeatNumber() {
+            return currSeat;
+        }
+        public char getRow() {
+            return row;
+        }
+ 
+        @Override
+        public String toString() {
+            return "%c%d: %c".formatted(row, currSeat, isReserved ? 'A' : 'F');
+        }
+    }
+}
