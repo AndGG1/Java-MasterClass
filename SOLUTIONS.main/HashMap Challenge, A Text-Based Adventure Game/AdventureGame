@@ -1,0 +1,104 @@
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiFunction;
+
+public class AdventureGame {
+       private static final String GAME_LOCATIONS = """
+            road,at the end of the road, W: hill, E:well house,S:valley,N:forest
+            hill,on top of hill with a view in all directions,N:forest, E:road
+            well house,inside a well house for a small spring,W:road,N:lake,S:stream
+            valley,in a forest valley beside a tumbling stream,N:road,W:hill,E:stream
+            forest,at the edge of a thick dark forest,S:road,E:lake
+            lake,by an alpine lake surrounded by wildflowers,W:forest,S:well house
+            stream,near a stream with a rocky bed,W:valley, N:well house
+            """;
+       private enum Compass {N, S, E, W}
+       private record Location(String description, Map<Compass, String> availablePlaces) implements BiFunction<String, Location, Location> {
+           @Override
+           public String toString() {
+               return "Description: %s | Available Places: %s  ".formatted(description, availablePlaces);
+           }
+
+           @Override
+           public Location apply(String s, Location location) {
+               return null;
+           }
+       }
+       private Location currPlace;
+       private static Map<String, Location> adventureMap = new HashMap<>();
+
+
+       private static void loadLocations() {
+           for (String s : AdventureGame.GAME_LOCATIONS.split("\n")) {
+               String[] locations = s.split(",");
+               Arrays.asList(locations).replaceAll(String::trim);
+
+               String name = locations[0];
+               Map<Compass, String> map = new HashMap<>();
+               Arrays.asList(locations).forEach(part -> {
+                   if (part.charAt(1) == ':') {
+                       map.putIfAbsent(Compass.valueOf(part.charAt(0) + ""), part.split(":")[1].toUpperCase());
+                   }
+               });
+               adventureMap.putIfAbsent(name.toUpperCase(), new Location(locations[1], map));
+           }
+       }
+
+    public AdventureGame() {
+        loadLocations();
+        this.currPlace = adventureMap.getOrDefault("WELL HOUSE", null);
+        printInOutput();
+    }
+
+    private void printInOutput() {
+        String s = "-".repeat(100);
+        System.out.println(s);
+        System.out.println("GAME DESCRIPTION");
+        System.out.println(s);
+        System.out.print(GAME_LOCATIONS);
+        System.out.println(s);
+        System.out.println("OVERALL PLACES:");
+        System.out.println(s);
+        adventureMap.forEach((d, l) -> System.out.println("Description: " + d + " Available Locations: " + l));
+        System.out.println(s);
+        System.out.println("GAME");
+        System.out.println(s);
+        System.out.println(currPlace + "WELL HOUSE");
+    }
+
+    public void nextLocation(char coordinate) {
+       Compass c = Compass.valueOf(coordinate + "".toUpperCase());
+       String location = "";
+
+       if (currPlace.availablePlaces.containsKey(c)) {
+           location = currPlace.availablePlaces.getOrDefault(c, null);
+           currPlace = adventureMap.get(location);
+       }
+        System.out.println(currPlace + location);
+    }
+
+    public void updateLocationDescription(String name, String description) {
+        String finalName = name.toUpperCase();
+        if (!adventureMap.containsKey(finalName)) return;
+
+        final Location currLocation = adventureMap.get(finalName);
+        BiFunction<String, Map<Compass, String>, Location> func = (d, l) -> new Location(d, currLocation.availablePlaces);
+        adventureMap.replace(finalName, func.apply(description, adventureMap.get(name).availablePlaces));
+
+        System.out.printf("Successfully updated %1$s's description from \"%2$s\" to %1$s's description: \"%3$s\" %n", finalName, currLocation.description, description);
+    }
+
+
+    public void updateLocationNextAvailablePlaces(String name, char coordinate, String location) {
+        if (Compass.valueOf(coordinate + "".toUpperCase()) != null && adventureMap.containsKey(location.toUpperCase())) {
+            adventureMap.get(name.toUpperCase()).availablePlaces.putIfAbsent(Compass.valueOf(coordinate + "".toUpperCase()), location);
+        }
+        System.out.printf("Successfully added %s=%s to %s", coordinate, location, name);
+    }
+
+    public void removeLocation(String name) {
+        adventureMap.remove(name.toUpperCase());
+        System.out.println("Successfully removed " + name + " from Available Locations");
+    }
+}
