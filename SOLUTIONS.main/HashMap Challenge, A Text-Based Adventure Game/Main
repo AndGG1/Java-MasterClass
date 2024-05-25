@@ -1,0 +1,25 @@
+public class Main {
+    public static void main(String[] args) {
+        //Testing the code
+
+        //Creates and goes to new locations (basic command)
+        AdventureGame game = new AdventureGame();
+        game.nextLocation('N');
+        game.nextLocation('W');
+        game.nextLocation('S');
+        game.nextLocation('S');
+        System.out.println();
+
+        //changes the description of the location passed in brackets
+        game.updateLocationDescription("HILL", "A hill full of flowers");
+        game.updateLocationDescription("FOREST", "Dark forest hiding a treasure");
+
+        //removes locations passed in brackets
+        game.removeLocation("LAKE");
+        game.removeLocation("HILL");
+
+        //adds/updates the respective locations's nextAvailableLocations map
+        game.updateLocationNextAvailablePlaces("STREAM", 'S', "HILL"); //Won't add because HILL doesn't exist anymore in the Map
+        game.updateLocationNextAvailablePlaces("STREAM", 'S', "FOREST"); //Will add because FOREST still exists in the Map
+    }
+}
