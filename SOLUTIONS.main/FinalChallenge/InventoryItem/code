@@ -1,0 +1,68 @@
+public class InventoryItem implements Comparable {
+    enum Categories {PRODUCT, CLOTHES, FOOD, SELF_CARE, LECTURE}
+
+    private Product product;
+    private double price;
+    private int qtyTotal;
+    private int qtyReserved;
+    private int qtyReorder;
+    private int qtyLow;
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public int getQtyTotal() {return qtyTotal;}
+
+    public double getPrice() {
+        return price;
+    }
+
+    public InventoryItem(Product product, double price, int qtyTotal, int qtyLow) {
+        this.product = product;
+        this.price = price;
+        this.qtyTotal = qtyTotal;
+        this.qtyLow = qtyLow;
+        this.qtyReorder = qtyTotal;
+    }
+
+
+    public boolean reserveItem(int qty) {
+
+        if (qtyTotal - qtyReserved >= qty) {
+            qtyReserved += qty;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean releaseItem(int qty) {
+        if (qty <= qtyReserved) {
+            qtyReserved -= qty;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean sellItem(int qty) {
+
+        if (qtyTotal >= qty) {
+            qtyTotal -= qty; qtyReserved -= qty;
+            if (qtyTotal <= qtyLow) {
+                System.out.printf("Placing order of %d new %s%n", qtyReorder, product);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "Shop.Product: %s, $%.2f : [%d, %d]".formatted(product, price, qtyTotal, qtyReserved);
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return o.toString().compareTo(product.name());
+    }
+}
