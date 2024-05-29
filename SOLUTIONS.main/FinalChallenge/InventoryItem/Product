@@ -1,0 +1,12 @@
+package Shop;
+
+record Product (int sku, String name, String manufacturer, InventoryItem.Categories category) {
+    public int assignId() {
+        return (name.length() + manufacturer.length() + category.toString().length()) * 31;
+    }
+
+    @Override
+    public String toString() {
+        return "Shop.Product: %s made by %s of category %s | %d".formatted(name, manufacturer, category, sku);
+    }
+}
