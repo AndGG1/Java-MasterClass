@@ -1,4 +1,4 @@
-`
+```
 public class InventoryItem implements Comparable {
     enum Categories {PRODUCT, CLOTHES, FOOD, SELF_CARE, LECTURE}
 
@@ -67,4 +67,4 @@ public class InventoryItem implements Comparable {
         return o.toString().compareTo(product.name());
     }
 }
-`
+```
