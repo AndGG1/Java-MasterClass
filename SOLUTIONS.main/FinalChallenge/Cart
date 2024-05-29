@@ -1,0 +1,71 @@
+package Shop;
+
+import java.time.LocalDate;
+import java.util.NavigableSet;
+import java.util.TreeSet;
+
+public class Cart {
+    enum CartType {PHYSICAL, VIRTUAL}
+
+    private static int lastId = 1;
+    private int id;
+    private LocalDate cartDate;
+    private CartType type;
+    private NavigableSet<InventoryItem> products;
+
+    public Cart(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public LocalDate getCartDate() {
+        return cartDate;
+    }
+
+    public Cart(CartType type, int days) {
+        this.type = type == CartType.PHYSICAL || type == CartType.VIRTUAL ? type : CartType.PHYSICAL;
+        id = ++lastId;
+        cartDate = LocalDate.now().minusDays(days);
+        products = new TreeSet<>();
+    }
+
+    public void addItem(InventoryItem item, int qty) {
+        products.add(item);
+
+        if (!item.reserveItem(qty)) {
+            System.out.println("Could now add item!");
+        }
+    }
+
+    public void removeItem(InventoryItem item, int qty) {
+
+        if (qty >= item.getQtyTotal()) {
+            products.remove(products.ceiling(item));
+            System.out.println("Successfully removed " + item);
+        } else {
+            products.ceiling(item).releaseItem(qty);
+            System.out.println("Successfully released " + qty);
+        }
+    }
+
+    public void printSales(NavigableSet<InventoryItem> inventory) {
+
+        double total = 0;
+        System.out.println("-".repeat(50));
+        System.out.println("Thank you for your sale!");
+        for (var item : products) {
+            System.out.println(inventory.pollFirst());
+            total += item.getPrice();
+        }
+        System.out.printf("Total Sale: $%.2f%n", total);
+        System.out.println("-".repeat(50));
+    }
+
+    @Override
+    public String toString() {
+        return "Cart: (id: %d, cartDate: %s)".formatted(id, cartDate);
+    }
+}
