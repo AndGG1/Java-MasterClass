@@ -1,5 +1,4 @@
-```
-public class InventoryItem implements Comparable {
+public class InventoryItem {
     enum Categories {PRODUCT, CLOTHES, FOOD, SELF_CARE, LECTURE}
 
     private Product product;
@@ -13,10 +12,12 @@ public class InventoryItem implements Comparable {
         return product;
     }
 
-    public int getQtyTotal() {return qtyTotal;}
-
     public double getPrice() {
         return price;
+    }
+
+    public int getQtyTotal() {
+        return qtyTotal;
     }
 
     public InventoryItem(Product product, double price, int qtyTotal, int qtyLow) {
@@ -29,6 +30,7 @@ public class InventoryItem implements Comparable {
 
 
     public boolean reserveItem(int qty) {
+        if (qty < 1) return false;
 
         if (qtyTotal - qtyReserved >= qty) {
             qtyReserved += qty;
@@ -38,6 +40,8 @@ public class InventoryItem implements Comparable {
     }
 
     public boolean releaseItem(int qty) {
+        if(qty < 1) return false;
+
         if (qty <= qtyReserved) {
             qtyReserved -= qty;
             return true;
@@ -46,6 +50,7 @@ public class InventoryItem implements Comparable {
     }
 
     public boolean sellItem(int qty) {
+        if (qty < 1) return false;
 
         if (qtyTotal >= qty) {
             qtyTotal -= qty; qtyReserved -= qty;
@@ -59,12 +64,11 @@ public class InventoryItem implements Comparable {
 
     @Override
     public String toString() {
-        return "Shop.Product: %s, $%.2f : [%d, %d]".formatted(product, price, qtyTotal, qtyReserved);
+        return "Product: %s, $%.2f : [%d, %d]".formatted(product, price, qtyTotal, qtyReserved);
     }
 
     @Override
-    public int compareTo(Object o) {
-        return o.toString().compareTo(product.name());
+    public int hashCode() {
+        return (qtyTotal + this.product.sku().length()) * 486187739;
     }
 }
-```
