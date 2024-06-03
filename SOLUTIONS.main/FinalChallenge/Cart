@@ -1,6 +1,8 @@
 package Shop;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
@@ -25,11 +27,16 @@ public class Cart {
         return cartDate;
     }
 
+    public NavigableSet<InventoryItem> getProducts() {
+        return products;
+    }
+
     public Cart(CartType type, int days) {
         this.type = type == CartType.PHYSICAL || type == CartType.VIRTUAL ? type : CartType.PHYSICAL;
         id = ++lastId;
         cartDate = LocalDate.now().minusDays(days);
-        products = new TreeSet<>();
+        products = new TreeSet<>(Comparator.comparing(InventoryItem::getPrice).
+                thenComparing(InventoryItem::getQtyTotal));
     }
 
     public void addItem(InventoryItem item, int qty) {
@@ -51,21 +58,25 @@ public class Cart {
         }
     }
 
-    public void printSales(NavigableSet<InventoryItem> inventory) {
+    public void printSales(Map<String, InventoryItem> inventory) {
 
         double total = 0;
-        System.out.println("-".repeat(50));
         System.out.println("Thank you for your sale!");
         for (var item : products) {
-            System.out.println(inventory.pollFirst());
+            System.out.println(item);
             total += item.getPrice();
         }
         System.out.printf("Total Sale: $%.2f%n", total);
-        System.out.println("-".repeat(50));
     }
 
     @Override
     public String toString() {
-        return "Cart: (id: %d, cartDate: %s)".formatted(id, cartDate);
+        return "Cart{" +
+                "id=" + id +
+                ", cartDate=" + cartDate +
+                ", type=" + type +
+                ", products=" + products +
+                '}';
     }
 }
+
