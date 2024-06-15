@@ -1,0 +1,73 @@
+package BankClasses;
+ 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+ 
+public final class BankCustomer {
+    private final String name;
+    private final int id;
+    private List<BankAccount> accounts;
+ 
+    public BankCustomer(String name, List<BankAccount> accounts) {
+        this.name = name;
+        this.id = new Random().nextInt(10_000);
+ 
+        boolean bool = false;
+        try {
+            accounts.add(null);
+        } catch (UnsupportedOperationException e) {
+            bool = true;
+        }
+ 
+        if (bool) {
+            this.accounts = accounts;
+        } else this.accounts = accounts == null ? Collections.unmodifiableList(accounts) : List.copyOf(accounts);
+    }
+ 
+    public BankCustomer(String name) {
+        this (name, null);
+    }
+ 
+    public String getName() {
+        return name;
+    }
+ 
+    public String getCustomerId() {
+        return "%015d".formatted(id);
+    }
+ 
+    public List<BankAccount> getAccounts() {
+        return accounts == null ? new ArrayList<>() : List.copyOf(accounts);
+    }
+ 
+    public BankAccount getAccount(Type type) {
+ 
+        for (var ac : accounts) {
+            if ((ac.getType() + "").equals(type + "")) {
+                return ac;
+            }
+        }
+        return null;
+    }
+ 
+    protected void addAccount(BankAccount account) {
+        for (var acc : accounts) {
+            if (acc == account) {
+                return;
+            }
+        }
+        accounts.add(account);
+    }
+ 
+    @Override
+    public String toString() {
+        return "BankCustomer{" +
+                "name='" + name + '\'' +
+                ", id=" + id +
+                ", accounts=" + accounts +
+                '}';
+    }
+}
