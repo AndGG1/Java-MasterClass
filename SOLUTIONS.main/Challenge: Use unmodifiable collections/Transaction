@@ -1,0 +1,52 @@
+package DTO;
+ 
+public class Transaction {
+    private int routingNumber;
+    private String customerId;
+    private long transactionId;
+    private double transactionAmount;
+ 
+    public Transaction(int routingNumber, String customerId, long transactionId, double transactionAmount) {
+        this.routingNumber = routingNumber;
+        this.customerId = customerId;
+        this.transactionId = transactionId;
+        this.transactionAmount = transactionAmount;
+    }
+ 
+    public int getRoutingNumber() {
+        return routingNumber;
+    }
+ 
+    public String getCustomerId() {
+        return customerId;
+    }
+ 
+    public long getTransactionId() {
+        return transactionId;
+    }
+ 
+    public double getTransactionAmount() {
+        return transactionAmount;
+    }
+ 
+    public void setRoutingNumber(int routingNumber) {
+        this.routingNumber = routingNumber;
+    }
+ 
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+ 
+    public void setTransactionId(long transactionId) {
+        this.transactionId = transactionId;
+    }
+ 
+    public void setTransactionAmount(double transactionAmount) {
+        this.transactionAmount = transactionAmount;
+    }
+ 
+    @Override
+    public String toString() {
+        return "%d:%d:%d:%.2f%n".formatted(routingNumber, customerId, transactionId, transactionAmount);
+    }
+}
