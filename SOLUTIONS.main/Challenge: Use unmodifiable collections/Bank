@@ -1,0 +1,50 @@
+package BankClasses;
+ 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+ 
+public class Bank {
+ 
+    public final int routingNumber;
+    private long lastTransactionId = 1;
+    private final Map<String, BankCustomer> customers;
+ 
+    public Bank(int routingNumber) {
+        this.routingNumber = routingNumber;
+        customers = new TreeMap<>();
+    }
+ 
+    public BankCustomer getCustomer(String id) {
+ 
+        BankCustomer c = customers.getOrDefault(id, null);
+        return c == null ? new BankCustomer("Average_Person") : c;
+    }
+ 
+    public void addCustomer(String name, int amount, String type) {
+ 
+        BankCustomer newCustomer = new BankCustomer(name,
+                new ArrayList<>(List.of(new BankAccount(type, amount))));
+        customers.put(newCustomer.getCustomerId(), newCustomer);
+    }
+ 
+    public boolean doTransaction(String id, Type accountType,
+                                 double amount) {
+        BankCustomer customer = customers.get(id);
+        if (customer != null) {
+            BankAccount account = customer.getAccount(accountType);
+            if (account != null && (account.getBalance() + amount) < 0) {
+                System.out.println("Insufficient funds");
+            } else {
+                account.commitTransactions(routingNumber, lastTransactionId++,
+                        id, amount);
+                return true;
+            }
+        } else {
+            System.out.println("Invalid customer id");
+        }
+        return false;
+    }
+}
