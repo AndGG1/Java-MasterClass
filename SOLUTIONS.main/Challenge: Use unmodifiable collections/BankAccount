@@ -1,0 +1,51 @@
+package BankClasses;
+ 
+import DTO.Transaction;
+ 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+ 
+public final class BankAccount {
+    private enum Type {CHECKING, SAVINGS};
+    private final Type type;
+    private double balance;
+ 
+    private final Map<Long, Transaction> transactions = new LinkedHashMap<>();
+ 
+    public BankAccount(String type, int balance) {
+        this.balance = balance;
+        this.type = Type.valueOf(type.toUpperCase());
+    }
+ 
+    public BankAccount() {
+        this(Type.SAVINGS.toString(), 0);
+    }
+ 
+    public Type getType() {
+        return type;
+    }
+ 
+    public double getBalance() {
+        return balance;
+    }
+ 
+    public Map<Long, Transaction> getTransactions() {
+        return transactions;
+    }
+ 
+    void commitTransactions(int routingNum, long transactionId, String customerId, double amount) {
+ 
+        balance += amount;
+        transactions.put(transactionId,
+                new Transaction(routingNum, customerId, transactionId, amount));
+    }
+ 
+    @Override
+    public String toString() {
+        return "BankAccount{" +
+                "type=" + type +
+                ", balance=" + balance +
+                '}';
+    }
+}
