@@ -1,0 +1,130 @@
+package Database_Managment.Test_Package;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Stream;
+
+
+public class Test2 {
+
+    public static void main(String[] args) {
+
+        System.out.println(Math.abs(-100));
+        System.out.println(Math.abs(Integer.MIN_VALUE) + " != " + Math.abs((long) Integer.MIN_VALUE));
+        System.out.println("Max = " + Math.max(10, -10));
+        System.out.println("Min = " + Math.min(10.0000002, 10.001f));
+
+        System.out.println("Round Down = " + Math.floor(10.999));
+        System.out.println("Round Up = " + Math.ceil(10.001));
+
+        System.out.println("/".repeat(50));
+
+        for (int i = 0; i <= 10; i++) {
+            System.out.printf("%1$d = %1$c%n", (int) (Math.random() * 26) + 65);
+        }
+
+        System.out.println("-".repeat(50));
+
+        Random random = new Random();
+        for (int i = 0; i <= 10; i++) {
+            System.out.printf("%1$d = %1$c%n", random.nextInt(65, 91));
+        }
+
+        System.out.println("-".repeat(50));
+
+        for (int i = 0; i < 10; i++) {
+            System.out.printf("%1$d = %1$c%n",
+                    random.nextInt((int) 'A', (int) 'Z'+1));
+            System.out.println(random.nextInt(10, 100));
+        }
+
+        List<Artist> artists = null;
+        try (EntityManagerFactory emf =
+             Persistence.createEntityManagerFactory("And_GG.music");
+             EntityManager em = emf.createEntityManager();)
+        {
+            var transaction = em.getTransaction();
+            transaction.begin();
+
+            Artist artist = em.find(Artist.class, 202);
+            System.out.println(artist == null ? " Artist wasn't found!" : artist);
+
+            var matches = getMatchedSongs(em, "%Storm%");
+            matches.forEach(a -> {
+                System.out.println(a);
+
+                a.getAlbums().forEach(album -> {
+                    System.out.println(album);
+
+                    album.getSongs().forEach(s -> {
+                        if (s.getSongTitle().contains("%Storm%")) {
+                            System.out.println(s);
+                        }
+                    });
+                });
+            });
+
+            transaction.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static List<Artist> getArtists(EntityManager em, String matchedVal) {
+
+        String jpql = "SELECT artist FROM Artist artist JOIN albums album" +
+                " WHERE album.albumName LIKE ?1 OR album.albumName LIKE ?2";
+        var query = em.createQuery(jpql, Artist.class);
+        query.setParameter(1, matchedVal);
+        query.setParameter(2, "%Best of%");
+
+        var rs = query.getResultList();
+        System.out.println(rs);
+
+        return rs;
+    }
+
+    private static Stream<Tuple> getArtistsSpecifics(EntityManager em, String matchedVal) {
+
+        String jpql = "SELECT a.artistId, a.artistName as name" +
+                " FROM Artist a WHERE a.artistName LIKE ?1";
+        var query = em.createQuery(jpql, Tuple.class);
+        query.setParameter(1, matchedVal);
+
+        return query.getResultStream();
+    }
+
+    private static Stream<Artist> getArtistsBuilder(EntityManager em, String matchedVal) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Artist> criteriaQuery = cb.createQuery(Artist.class);
+        Root<Artist> root = criteriaQuery.from(Artist.class);
+
+        criteriaQuery
+                .select(root)
+                .where(cb.like(root.get("artistName"), matchedVal))
+                .orderBy(cb.asc(root.get("artistName")))
+                .distinct(true);
+
+        return em.createQuery(criteriaQuery).getResultStream();
+    }
+
+    private static List<Artist> getMatchedSongs(EntityManager em, String matchedVal) {
+
+        String jpql = "SELECT a FROM Artist a JOIN albums album " +
+                "JOIN songs song WHERE song.songTitle LIKE ?1 OR song.songTitle LIKE ?2";
+        var query = em.createQuery(jpql, Artist.class);
+        query.setParameter(1, matchedVal);
+        query.setParameter(2, "%Storm%");
+
+        return query.getResultList();
+    }
+}
