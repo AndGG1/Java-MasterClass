@@ -1,0 +1,36 @@
+package Database_Managment.Test_Package;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name="songs")
+public class Song {
+
+    //@GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @Column(name="song_id")
+    private int songId;
+
+    @Column(name="song_title")
+    private String songTitle;
+
+    @Column(name="track_number")
+    private int trackNumber;
+
+    public String getSongTitle() {
+        return songTitle;
+    }
+
+    public int getTrackNumber() {
+        return trackNumber;
+    }
+
+    @Override
+    public String toString() {
+        return "Song{" +
+                "songId=" + songId +
+                ", songTitle='" + songTitle + '\'' +
+                ", trackNumber=" + trackNumber +
+                '}';
+    }
+}
