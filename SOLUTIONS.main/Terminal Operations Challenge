@@ -1,1 +1,146 @@
+package Student;
+ 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+ 
+public class Main {
+ 
+    public static void main(String[] args) {
+ 
+        Course pymc = new Course("PYMC", "Python Masterclass");
+        Course jmc = new Course("JMC", "Java Masterclass");
+ 
+        Student[] students = new Student[10_000];
+        Arrays.setAll(students, i -> Student.getRandomStudent(jmc, pymc));
+        String s2 = "-".repeat(50);
+ 
+        System.out.println(s2);
+        System.out.println("Overall Stats of Students enrolled in JMC and PYMC");
+        System.out.println(s2);
+ 
+        for (String gender : List.of("M", "F", "U")) {
+            var studentsOfGenderX = Arrays.stream(students)
+                    .filter(s -> s.getGender().equals(gender));
+            System.out.println("There are " + studentsOfGenderX.count() + " of gender " + gender);
+        }
+        
+        System.out.println(s2);
+ 
+        int total = students.length;
+        for (int i = 1; i <= 3; i++) {
+            int curr = 0;
+            Stream<Integer> groupedByAge;
+ 
+            if (i == 1) {
+                groupedByAge = Arrays.stream(students)
+                .map(Student::getAge)
+                        .filter(age -> age < 30);
+                curr = (int) groupedByAge.count();
+                total -= curr;
+ 
+            } else if (i == 2) {
+                groupedByAge = Arrays.stream(students)
+                        .map(Student::getAge)
+                        .filter(age -> age > 30 && age < 60);
+                curr = (int) groupedByAge.count();
+                total -= curr;
+ 
+            } else {
+                System.out.println("There are " + total + " students with an average age of 75");
+                break;
+            }
+            System.out.println("There are " + curr + " students with an average age of " + i * 25);
+        }
+ 
+        System.out.println(s2);
+ 
+        Arrays.stream(students)
+                .map(Student::getCountryCode)
+                .distinct()
+                .sorted()
+                .forEach(s -> System.out.print(s + " "));
+ 
+        System.out.println("\n" + s2);
+ 
+        var isStudentOver7YearsEnrolled = Arrays.stream(students)
+                .anyMatch(s -> s.getYearsSinceEnrolled() > 7 && (s.getMonthsSinceActive() < 12));
+        System.out.println(isStudentOver7YearsEnrolled ? "There are students over 7 years enrolled in the courses" :
+                "There aren't students over 7 years enrolled in the courses");
+ 
+        System.out.println(s2);
+ 
+        Arrays.stream(students)
+                .filter(s -> s.getYearsSinceEnrolled() > 7)
+                .sorted(Comparator.comparing(Student::getStudentId))
+                .limit(5)
+                .forEach(System.out::println);
+ 
+        System.out.println(s2);
+    }
+}
 
+
+package Student;
+ 
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+ 
+public class MainChallenge {
+ 
+    public static void main(String[] args) {
+ 
+        Course pymc = new Course("PYMC", "Python Masterclass", 50);
+        Course jmc = new Course("JMC", "Java Masterclass", 100);
+        Course cgj = new Course("CGJ", "Creating Games in Java");
+ 
+        System.out.println("-".repeat(50));
+ 
+        //version 1
+        List<Student> students = Stream.generate(() -> Student.getRandomStudent(jmc, pymc))
+                .limit(5000)
+                .toList();
+ 
+        //version 2
+         /*  List<Student> students2 = IntStream.rangeClosed(1, 5000)
+                .mapToObj(s -> Student.getRandomStudent(jmc, pymc))
+                .toList(); */
+ 
+        double totalPercent = students.stream()
+                .mapToDouble(s -> s.getPercentComplete("JMC"))
+                .reduce(0.0, Double::sum);
+        System.out.println("Average Score: " + totalPercent / students.size() + "%");
+ 
+        System.out.println("-".repeat(50));
+ 
+        List<Student> studentsAboveAverage = students.stream()
+                .filter(s -> s.getMonthsSinceActive() == 0)
+                .filter(s -> s.getPercentComplete("JMC") >= totalPercent / students.size() * 1.25)
+               /* .peek(s -> {
+                    if (s.getPercentComplete("JMC") >= 95) System.out.println("A student from " +
+                            s.getCountryCode() +
+                            " has a bright future ahead of him/her! (" + s.getPercentComplete("JMC") + "%)");
+                }) */
+                .toList();
+        System.out.println("Ingenious Jr. Programmers = " + studentsAboveAverage.size() + " out of " + students.size());
+ 
+        System.out.println("-".repeat(120));
+ 
+        List<Student> luckyStudents = students.stream()
+                .sorted(Comparator.comparing(Student::getYearsSinceEnrolled))
+                .filter(s -> s.getMonthsSinceActive() == 0)
+                .collect(Collectors.toList());
+        luckyStudents = luckyStudents.subList(luckyStudents.size()-10, luckyStudents.size());
+        luckyStudents.forEach(s -> {
+            System.out.println("It seems like a student from " + s.getCountryCode() +
+                " is senior in this course and it is still active! ---> he/she got a new course! " +
+                    "(" + s.getYearsSinceEnrolled() + " years)");
+            s.addCourse(cgj);
+        });
+ 
+        System.out.println("-".repeat(120));
+    }
+}
