@@ -124,6 +124,7 @@ public class MainChallenge {
                             s.getCountryCode() +
                             " has a bright future ahead of him/her! (" + s.getPercentComplete("JMC") + "%)");
                 }) */
+
                 .toList();
         System.out.println("Ingenious Jr. Programmers = " + studentsAboveAverage.size() + " out of " + students.size());
  
