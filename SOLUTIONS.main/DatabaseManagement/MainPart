@@ -1,130 +1,191 @@
-package Database_Managment.Test_Package;
+package dev.lpa;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
-import jakarta.persistence.Tuple;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
+import com.mysql.cj.jdbc.MysqlDataSource;
 
-import java.util.List;
-import java.util.Random;
-import java.util.stream.Stream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
+import java.util.*;
 
+record OrderDetail(int orderDetailId, String itemDescription, int qty) {
 
-public class Test2 {
+    public OrderDetail(String itemDescription, int qty) {
+        this(-1, itemDescription, qty);
+    }
+
+    public String toJSON() {
+        return new StringJoiner(", ", "{", "}")
+                .add("\"itemDescription\":\"" + itemDescription + "\"")
+                .add("\"qty\":" + qty)
+                .toString();
+    }
+}
+
+record Order(int orderId, String dateString, List<OrderDetail> details) {
+
+    public Order(String dateString) {
+        this(-1, dateString, new ArrayList<>());
+    }
+
+    public void addDetail(String itemDescription, int qty) {
+        OrderDetail item = new OrderDetail(itemDescription, qty);
+        details.add(item);
+    }
+
+    public String getDetailsJson() {
+        StringJoiner jsonString = new StringJoiner(",", "[", "]");
+        details.forEach((d) -> jsonString.add(d.toJSON()));
+        return jsonString.toString();
+    }
+}
+
+public class Challenge2 {
 
     public static void main(String[] args) {
 
-        System.out.println(Math.abs(-100));
-        System.out.println(Math.abs(Integer.MIN_VALUE) + " != " + Math.abs((long) Integer.MIN_VALUE));
-        System.out.println("Max = " + Math.max(10, -10));
-        System.out.println("Min = " + Math.min(10.0000002, 10.001f));
+        var dataSource = new MysqlDataSource();
+        dataSource.setServerName("localhost");
+        dataSource.setPort(3306);
+        dataSource.setUser(System.getenv("MYSQLUSER"));
+        dataSource.setPassword(System.getenv("MYSQLPASS"));
+        List<Order> orders = readData();
 
-        System.out.println("Round Down = " + Math.floor(10.999));
-        System.out.println("Round Up = " + Math.ceil(10.001));
+        try (Connection conn = dataSource.getConnection()) {
 
-        System.out.println("/".repeat(50));
+//            String alterString =
+//                    "ALTER TABLE storefront.order_details ADD COLUMN quantity INT";
+//            Statement statement = conn.createStatement();
+//            statement.execute(alterString);
 
-        for (int i = 0; i <= 10; i++) {
-            System.out.printf("%1$d = %1$c%n", (int) (Math.random() * 26) + 65);
-        }
+//            addOrders(conn, orders);
 
-        System.out.println("-".repeat(50));
+            CallableStatement cs = conn.prepareCall(
+                    "{ CALL storefront.addOrder(?, ?, ?, ?) }");
 
-        Random random = new Random();
-        for (int i = 0; i <= 10; i++) {
-            System.out.printf("%1$d = %1$c%n", random.nextInt(65, 91));
-        }
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern("G yyyy-MM-dd HH:mm:ss")
+                                    .withResolverStyle(ResolverStyle.STRICT);
 
-        System.out.println("-".repeat(50));
-
-        for (int i = 0; i < 10; i++) {
-            System.out.printf("%1$d = %1$c%n",
-                    random.nextInt((int) 'A', (int) 'Z'+1));
-            System.out.println(random.nextInt(10, 100));
-        }
-
-        List<Artist> artists = null;
-        try (EntityManagerFactory emf =
-             Persistence.createEntityManagerFactory("And_GG.music");
-             EntityManager em = emf.createEntityManager();)
-        {
-            var transaction = em.getTransaction();
-            transaction.begin();
-
-            Artist artist = em.find(Artist.class, 202);
-            System.out.println(artist == null ? " Artist wasn't found!" : artist);
-
-            var matches = getMatchedSongs(em, "%Storm%");
-            matches.forEach(a -> {
-                System.out.println(a);
-
-                a.getAlbums().forEach(album -> {
-                    System.out.println(album);
-
-                    album.getSongs().forEach(s -> {
-                        if (s.getSongTitle().contains("%Storm%")) {
-                            System.out.println(s);
-                        }
-                    });
-                });
+            orders.forEach((o) -> {
+                try {
+                    LocalDateTime localDateTime =
+                            LocalDateTime.parse("AD " + o.dateString(), formatter);
+                    Timestamp timestamp = Timestamp.valueOf(localDateTime);
+                    cs.setTimestamp(1, timestamp);
+                    cs.setString(2, o.getDetailsJson());
+                    cs.registerOutParameter(3, Types.INTEGER);
+                    cs.registerOutParameter(4, Types.INTEGER);
+                    cs.execute();
+                    System.out.printf("%d records inserted for %d (%s)%n",
+                            cs.getInt(4),
+                            cs.getInt(3),
+                            o.dateString());
+                } catch (Exception e) {
+                    System.out.printf("Problem with %s : %s%n", o.dateString(),
+                            e.getMessage());
+                }
             });
-
-            transaction.commit();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static List<Artist> getArtists(EntityManager em, String matchedVal) {
+    private static List<Order> readData() {
 
-        String jpql = "SELECT artist FROM Artist artist JOIN albums album" +
-                " WHERE album.albumName LIKE ?1 OR album.albumName LIKE ?2";
-        var query = em.createQuery(jpql, Artist.class);
-        query.setParameter(1, matchedVal);
-        query.setParameter(2, "%Best of%");
+        List<Order> vals = new ArrayList<>();
 
-        var rs = query.getResultList();
-        System.out.println(rs);
+        try (Scanner scanner = new Scanner(Path.of("Orders.csv"))) {
 
-        return rs;
+            scanner.useDelimiter("[,\\n]");
+            var list = scanner.tokens().map(String::trim).toList();
+
+            for (int i = 0; i < list.size(); i++) {
+
+                String value = list.get(i);
+                if (value.equals("order")) {
+                    var date = list.get(++i);
+                    vals.add(new Order(date));
+                } else if (value.equals("item")) {
+                    var qty = Integer.parseInt(list.get(++i));
+                    var description = list.get(++i);
+                    Order order = vals.get(vals.size() - 1);
+                    order.addDetail(description, qty);
+                }
+            }
+            vals.forEach(System.out::println);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return vals;
     }
 
-    private static Stream<Tuple> getArtistsSpecifics(EntityManager em, String matchedVal) {
+    private static void addOrder(Connection conn, PreparedStatement psOrder,
+                                 PreparedStatement psDetail, Order order)
+            throws SQLException {
 
-        String jpql = "SELECT a.artistId, a.artistName as name" +
-                " FROM Artist a WHERE a.artistName LIKE ?1";
-        var query = em.createQuery(jpql, Tuple.class);
-        query.setParameter(1, matchedVal);
+        try {
+            conn.setAutoCommit(false);
+            int orderId = -1;
+            psOrder.setString(1, order.dateString());
+            if (psOrder.executeUpdate() == 1) {
+                var rs = psOrder.getGeneratedKeys();
+                if (rs.next()) {
+                    orderId = rs.getInt(1);
+                    System.out.println("orderId = " + orderId);
 
-        return query.getResultStream();
+                    if (orderId > -1) {
+                        psDetail.setInt(1, orderId);
+                        for (OrderDetail od : order.details()) {
+                            psDetail.setString(2, od.itemDescription());
+                            psDetail.setInt(3, od.qty());
+                            psDetail.addBatch();
+                        }
+                        int[] data = psDetail.executeBatch();
+                        int rowsInserted = Arrays.stream(data).sum();
+                        if (rowsInserted != order.details().size()) {
+                            throw new SQLException("Inserts don't match");
+                        }
+                    }
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
     }
 
-    private static Stream<Artist> getArtistsBuilder(EntityManager em, String matchedVal) {
+    private static void addOrders(Connection conn, List<Order> orders) {
 
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Artist> criteriaQuery = cb.createQuery(Artist.class);
-        Root<Artist> root = criteriaQuery.from(Artist.class);
+        String insertOrder = "INSERT INTO storefront.order (order_date) VALUES (?)";
+        String insertDetail = "INSERT INTO storefront.order_details " +
+                "(order_id, item_description, quantity) values(?, ?, ?)";
 
-        criteriaQuery
-                .select(root)
-                .where(cb.like(root.get("artistName"), matchedVal))
-                .orderBy(cb.asc(root.get("artistName")))
-                .distinct(true);
+        try (
+                PreparedStatement psOrder = conn.prepareStatement(insertOrder,
+                        Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement psDetail = conn.prepareStatement(insertDetail,
+                        Statement.RETURN_GENERATED_KEYS);
+        ) {
 
-        return em.createQuery(criteriaQuery).getResultStream();
-    }
-
-    private static List<Artist> getMatchedSongs(EntityManager em, String matchedVal) {
-
-        String jpql = "SELECT a FROM Artist a JOIN albums album " +
-                "JOIN songs song WHERE song.songTitle LIKE ?1 OR song.songTitle LIKE ?2";
-        var query = em.createQuery(jpql, Artist.class);
-        query.setParameter(1, matchedVal);
-        query.setParameter(2, "%Storm%");
-
-        return query.getResultList();
+            orders.forEach((o) -> {
+                try {
+                    addOrder(conn, psOrder, psDetail, o);
+                } catch (SQLException e) {
+                    System.err.printf("%d (%s) %s%n", e.getErrorCode(),
+                            e.getSQLState(), e.getMessage());
+                    System.err.println("Problem: " + psOrder);
+                    System.err.println("Order: " + o);
+                }
+            });
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
