@@ -1,0 +1,105 @@
+
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.TimeZone;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        //BASIC
+        // | -> or
+        //[x] -> any char/sequence out of x
+        //x-y -> interval between x and y => [x;y]
+        //Specific for String: [a-zA-z] => includes both a to z and A to Z
+
+        //CHARACTER CLASSES
+        //* -> p. >= 0
+        //+ -> > 0
+        //? -> 0 or 1
+        //{n} -> must appear exactly n times
+        //{n, } -> p. >= n
+        //{n, m} -> n <= p. < m
+
+        //BOUNDARY MATCHERS
+        //^ -> matches to start of text
+        //$ -> matches to end of text
+        //\b -> matches to word
+        //^. -> matches first char in String
+        //.$ -> matches last char in String
+        //\\b -> matches first word in String
+
+        //BONUS
+        // \\R - same shi' with \n.
+        // \\s - total num. of words (Can also do: "\\R| ").
+        // \|S - total num. of chars.
+
+        //Literals
+        String testString = "Anyone can learn abc's, 123's, and any regular expression";
+        String replacement = "(-)";
+
+        String[] patterns = {"[a-zA-Z]{3,}", "4+|[0-9]{2,}|12|23", "A{2,}|[b-fB-F]+",
+                "[a-zA-Z]{5,}.$|[aA]ny[a-zA-Z]+\\b", "can\\b"};
+
+        for (String pattern : patterns) {
+            String output = testString.replaceFirst(pattern, replacement);
+            System.out.println("Pattern " + pattern + " => " + output);
+        }
+
+
+        // Song of the Witches in MacBeth, a Play by Shakespeare
+        String paragraph = """
+                Double, double toil and trouble;
+                Fire burn and caldron bubble.
+                Fillet of a fenny snake,
+                In the caldron boil and bake
+                Eye of newt and toe of frog,
+                Wool of bat and tongue of dog,
+                Adder's fork and blind-worm's sting,
+                Lizard's leg and howlet's wing,
+                For a charm of powerful trouble,
+                Like a hell-broth boil and bubble.
+                
+                Lacul noptii sub cer stralucea,
+                Iar in lunca bradului al meu glas il asculta
+                Caci eu i-am dat graiul;
+                Si tot eu ii iau toiagul;
+                Caci matura detine cimpanzeul.
+                """;
+
+        String[] lines = paragraph.split("\\R");
+        System.out.println("This paragraph has " + lines.length + " lines");
+        String[] words = paragraph.split("\\s");
+        System.out.println("This paragraph has " + words.length + " words");
+        String[] chars = paragraph.split("\\S");
+        System.out.println("This paragraph has " + chars.length + " characters");
+        System.out.println("\n" + paragraph.replaceAll("[a-zA-Z]+ble", "[GRUB]"));
+
+        Scanner scanner = new Scanner(paragraph);
+        System.out.println(scanner.delimiter());
+        scanner.useDelimiter("\\R");
+
+//        scanner.tokens()
+//                .map(s -> Arrays.stream(s.split("\\s+")).count())
+//                .forEach(System.out::println);
+//
+//        while (scanner.hasNext()) {
+//            String el = scanner.next();
+//            String[] chars2 = el.split("");
+//            System.out.println(el + "  has " + chars2.length + " characters");
+//        }
+
+        while (scanner.hasNext()) {
+            var el = scanner.findInLine("[a-zA-Z]+ble");
+            while (el != null) {
+                System.out.println(el);
+                el = scanner.findInLine("[a-zA-Z]+ble");
+            }
+            scanner.next();
+            el = scanner.nextLine();
+        }
+
+        scanner.close();
+    }
+}
