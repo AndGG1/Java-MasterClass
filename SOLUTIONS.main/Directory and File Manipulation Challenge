@@ -1,0 +1,71 @@
+mport java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Comparator;
+ 
+public class Main {
+    
+    public static void main(String[] args) throws IOException {
+        challengeMethod();
+    }
+    
+    private static void challengeMethod() throws IOException {
+        //Creates the Path if doesn't exist.
+        if (!Files.exists(Path.of("public"))) {
+            Files.createDirectories(Path.of("public/assets/icons"));
+        }
+        
+        Files.walkFileTree(Path.of("public"), new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                        Path path = dir.resolve("index.txt");
+                        if (!Files.exists(path)) {
+                            Files.createFile(path);
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+        });
+        
+        listDirectories(Path.of("public"), 2);
+    }
+    
+    private static void listData(Path path, Path indexFile) {
+        
+        if (Files.isDirectory(path)) {
+            try {
+                Files.list(path).toList().forEach(c -> {
+                            if (!c.equals(indexFile) && Files.isRegularFile(c)) {
+                                try {
+                                    if (!Files.readString(c).isEmpty()) {
+                                        Files.writeString(indexFile, c + "'s Data: " + Files.readString(c) + " | Creation Time: " + Files.getAttribute(c, "creationTime") + "&  Path: " + c.toAbsolutePath() + """
+                                                
+                                                """, StandardOpenOption.APPEND);
+                                    }
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else if (Files.isDirectory(c)) {
+                                Main.listData(c, indexFile);
+                            }
+                });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    
+    private static void listDirectories(Path path, int levels) {
+        if (Files.isDirectory(path)) {
+            try {
+                Files.walk(path, levels)
+                        .filter(Files::isDirectory)
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(dir -> {
+                            listData(dir, dir.resolve("index.txt"));
+                        });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+}
