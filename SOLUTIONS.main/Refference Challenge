@@ -1,0 +1,38 @@
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+ 
+public class Main {
+    public static void main(String[] args) {
+        //names list
+        List<String> names = new ArrayList<>(List.of("Andrei", "Andreea", "Emilian",
+                "Razvan", "David", "Paul", "Mark"));
+        //functions to be applied are stored here
+        List<UnaryOperator<String>> functionList = new ArrayList<>();
+        Supplier<Random> random = Random::new;
+ 
+        //we uppercase the strings
+        UnaryOperator<String> upperCase = String::toUpperCase;
+        //takes a random mid
+        UnaryOperator<String> randomMid = s -> s + " " + s.charAt(random.get().nextInt(s.length()-1));
+        //reverses the name without the mid part
+        UnaryOperator<String> lastName = s -> {
+            StringBuilder res = new StringBuilder(s.substring(0, s.length()-2));
+            return res.reverse() + " " + s;
+        };
+        //gives the person a random age
+        UnaryOperator<String> randomAge = s -> s + " age:" + (random.get().nextInt(s.length()-1) + 20);
+        //we add the functions
+        functionList.addAll(List.of(randomMid, lastName, upperCase, randomAge));
+        //we call the transformNames method
+        System.out.println(transformNames(names, functionList));
+    }
+ 
+    private static List<String> transformNames(List<String> names, List<UnaryOperator<String>> functions) {
+        //we loop through the functions and replace all names with their results
+        for (var f : functions) {
+            names.replaceAll(s -> s.transform(f));
+        }
+        return names;
+    }
+}
