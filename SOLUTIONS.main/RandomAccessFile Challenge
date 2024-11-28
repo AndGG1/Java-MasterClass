@@ -1,0 +1,103 @@
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Scanner;
+ 
+record Employee (int employeeId, String firstName, String lastName, double salary) {};
+ 
+public class Main {
+    private static final Map<Integer, Long> indexedIds = new LinkedHashMap<>();
+    private static final RandomAccessFile readRA;
+    
+    static {
+        try {
+            readRA = new RandomAccessFile("employees.dat", "r");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private static int recordsInFile = 0;
+    
+    static {
+        try {
+            loadIndex(new RandomAccessFile("employees.dat", "r"), 0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+            while (scanner.hasNext()) {
+                System.out.println("Employee to retrieve:");
+                int id = scanner.nextInt();
+                if (id < 1) break;
+                
+                retrieveEmployee(readRA, id, true);
+            }
+        System.out.println("Enter new employee salary: ");
+            try (RandomAccessFile ra = new RandomAccessFile("employees.dat", "rw");) {
+                double salary = Double.parseDouble(scanner.nextLine());
+                int randomId = new Random().nextInt(0, 1000);
+                updateEmployeeSalary(ra, salary, randomId);
+                
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    
+    private static void loadIndex(RandomAccessFile ra, int indexPos) {
+        try {
+            ra.seek(indexPos);
+            recordsInFile = ra.readInt();
+            System.out.println("There are " + recordsInFile + " in the File.");
+            
+            for (int i = 0; i < recordsInFile; i++) {
+                indexedIds.put(ra.readInt(), ra.readLong());
+            }
+            
+            indexedIds.forEach((k, v) -> System.out.println(k + ": " + v));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private static Employee retrieveEmployee(RandomAccessFile ra, int id, boolean printData) {
+        try {
+            if (indexedIds.containsKey(id)) {
+                ra.seek(indexedIds.get(id));
+                ra.readInt();
+                double salary = ra.readDouble();
+                String fName = ra.readUTF();
+                String lName = ra.readUTF();
+                
+                Employee e = new Employee(id, fName, lName, salary);
+                if (printData) System.out.println("Retrieved Employee: " + e);
+                return e;
+                
+            } else System.out.println("Couldn't find the employee with " + id + " as id!");
+            
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+    
+    private static void updateEmployeeSalary(RandomAccessFile ra, double val, int id) {
+        try {
+            if (indexedIds.containsKey(id)) {
+                Employee e = retrieveEmployee(ra, id, false);
+                ra.seek(indexedIds.get(id)+4);
+                ra.writeDouble(val);
+                
+                retrieveEmployee(ra, id, true);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
