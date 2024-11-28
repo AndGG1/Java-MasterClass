@@ -1,0 +1,55 @@
+@SafeVarargs
+public static Set<Task> getUnion(Set<Task>... sets) {
+    Set<Task> unionSet = new HashSet<>();
+    for (Set<Task> s : sets) {
+        unionSet.addAll(s);
+    }
+    return unionSet;
+}
+static Set<Task> getIntersection(Set<Task> s1, Set<Task> s2) {
+    Set<Task> newSet = new HashSet<>();
+    for (Task t : s2) {
+        if (s1.contains(t)) newSet.add(t);
+    }
+    // Can also use .retainAll(), it will sill run on O(n) Time Complexity
+    return newSet;
+}
+ 
+public static Set<Task> getDifference(Set<Task> s1, Set<Task> s2) {
+    Set<Task> newSet = new HashSet<>();
+    for (Task t : s2) {
+        if (!s1.contains(t)) newSet.add(t);
+    }
+    //Can also use .removeAll(), it will still run on O(n) Time Complexity
+    return newSet;
+}
+ 
+public static void printTasks(Set<Task> set, String header) {
+    System.out.println("-".repeat(100));
+    System.out.println(header);
+    System.out.println("-".repeat(100));
+    for (Task t : set) {
+        System.out.println(t);
+    }
+}
+
+
+Main Class:
+
+public static void main(String[] args) {
+    //Example with Ann and Carol
+    Set<Task> annsTasks = TaskData.getTasks("Ann");
+    Task.printTasks(annsTasks, "ANN");
+    Set<Task> carolsTasks = TaskData.getTasks("Carol");
+    Task.printTasks(carolsTasks, "CAROL");
+ 
+    //Sets to print(the name specifies what method they use)
+    Set<Task> union = Task.getUnion(annsTasks, carolsTasks);
+    Set<Task> intersect = Task.getIntersection(annsTasks, carolsTasks);
+    Set<Task> difference = Task.getDifference(annsTasks, carolsTasks);
+ 
+    //prints the sets
+    Task.printTasks(union, "UNION");
+    Task.printTasks(intersect, "INTERSECT");
+    Task.printTasks(difference, "DIFFERENCE");
+}
