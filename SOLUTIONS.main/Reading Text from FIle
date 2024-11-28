@@ -1,0 +1,88 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+ 
+public class Main {
+    
+    public static void main(String[] args) {
+        
+        System.out.println("-".repeat(50));
+        System.out.println("Matched Words:");
+        System.out.print("-".repeat(50));
+        
+        Map<String, Integer> words = new TreeMap<>();
+        try {
+            Files.lines(Path.of("Files/Sm"))
+                    .flatMap(line -> Arrays.stream(line.split(" ")))
+                    .filter(s -> s.length() >= 5)
+                    .collect(Collectors.groupingBy(s -> s.
+                                    replaceAll("[.,;?!-]", "").trim() + " ",
+                            Collectors.counting()))
+                    .forEach((s, c) -> {
+                        System.out.printf("\n%s found %d times", s, c);
+                        words.put(s, Math.toIntExact(c));
+                    });
+            System.out.println("\n" + "-".repeat(50));
+            System.out.println("Top Used Words:");
+            System.out.print("-".repeat(50) + "\n");
+            
+            AtomicInteger increment = new AtomicInteger(1);
+            words.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach((s) -> {
+                        System.out.printf("#%d %s\n", increment.getAndIncrement(), s);
+                    });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
+        try (BufferedReader br = new BufferedReader(new FileReader("Files/Sm"))) {
+            System.out.println("-".repeat(50));
+            
+            
+            var res2 = Arrays.stream(Files.readString(Path.of("Files/Sm"))
+                    .replaceAll("\\p{Punct}", "")
+                    .split("\\p{javaWhitespace}"))
+                    .filter(s -> s.length() >= 5)
+                    .map(String::toUpperCase)
+                    .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+            
+            res2.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach(System.out::println);
+            
+            
+            System.out.println("-".repeat(50));
+            
+            
+            Map<String, Integer> words2 = new TreeMap<>();
+            var input = Files.readString(Path.of("Files/Sm"))
+                    .replaceAll("\\p{Punct}", "").toUpperCase();
+            
+            Pattern p2 = Pattern.compile("\\w+");
+            Matcher m = p2.matcher(input);
+            
+            while (m.find()) {
+                if (m.group().length() >= 5) {
+                    words2.put(m.group(), words2.getOrDefault(m.group(), 0) + 1);
+                }
+            }
+            words2.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach(System.out::println);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+ 
