@@ -1,0 +1,26 @@
+public class Main {
+ 
+    public static void main(String[] args) {
+ 
+        final String match = "The sample provided matches the String!";
+        final String notMatch = "The sample provided does not match the String!";
+ 
+        //Mini Challenge 1
+        String sampleString1 = "Hello, World! How are you today? Feeling good?";
+        if (sampleString1.matches("Hello, World!")) {
+            System.out.println(match);
+        } else System.out.println(notMatch);
+ 
+        //Mini Challenge 2
+        String sampleString2 = "The bike is red.";
+        if (sampleString2.matches("^[A-Z].+\\.$")) {
+            System.out.println(match);
+        } else System.out.println(notMatch);
+ 
+        //Mini Challenge
+        String sampleString3 = "Is the bike red?";
+        if (sampleString3.matches("^[A-Z].+[.?!,:;]$")) {
+            System.out.println(match);
+        } else System.out.println(notMatch);
+    }
+}
