@@ -1,0 +1,37 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+ 
+public class Main {
+ 
+    public static void main(String[] args) {
+        String[] firstNames = {"Andrew", "David", "Paul", "Mark", "Andreea", "Rob",
+                "Nick", "Tim", "Bob", "Anna", "Aya"};
+ 
+        Arrays.setAll(firstNames, i -> firstNames[i].toUpperCase());
+        List<String> backedByArray = Arrays.asList(firstNames);
+        System.out.println(Arrays.toString(firstNames));
+ 
+ 
+        backedByArray.replaceAll(s -> s += " " + getRandomChar(s) + ".");
+        System.out.println(Arrays.toString(firstNames));
+ 
+        backedByArray.replaceAll(s -> reverseName(s.split(" ")[0]));
+        Arrays.asList(firstNames).forEach(s -> System.out.println(s));
+ 
+        System.out.println();
+ 
+        List<String> newList = new ArrayList<>(List.of(firstNames));
+        newList.removeIf(s -> s.equals(reverseName(s)));
+        newList.forEach(s -> System.out.println(s));
+    }
+ 
+    public static char getRandomChar(String s) {
+        return s.charAt(new Random().nextInt(0, s.length()));
+    }
+ 
+    public static String reverseName(String s) {
+        return new StringBuilder(s).reverse().toString();
+    }
+}
