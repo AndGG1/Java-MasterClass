@@ -1,0 +1,100 @@
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+ 
+public class Main {
+    
+    public static void main(String[] args) {
+        
+        Path startingPath = Path.of("..");
+        FileVisitor<Path> statsVisitor = new StatsVisitor(1);
+        try {
+            Files.walkFileTree(startingPath, statsVisitor);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private static class StatsVisitor extends SimpleFileVisitor<Path> {
+        
+        private Path initialPath = null;
+        private final Map<Path, Long> folderSizes = new LinkedHashMap<>();
+        private final Map<Path, int[]> folderCount = new LinkedHashMap<>();
+        private int initialCount;
+        private int printLevel;
+        
+        public StatsVisitor(int printLevel) {
+            this.printLevel = printLevel;
+        }
+        
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            Objects.requireNonNull(file);
+            Objects.requireNonNull(attrs);
+            folderSizes.merge(file.getParent(), 0L, (o, n) -> o + attrs.size()); // Update parent directory size
+            if (Files.isDirectory(file)) {
+                folderCount.merge(file.getParent(), new int[] {0, 0}, (o, n) -> o = new int[] {o[0]+1, o[1]});
+            } else {
+                folderCount.merge(file.getParent(), new int[] {0, 0}, (o, n) -> o = new int[] {o[0], o[1]+1});
+            }
+            return FileVisitResult.CONTINUE;
+        }
+        
+        @Override
+        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            Objects.requireNonNull(dir);
+            Objects.requireNonNull(attrs);
+            
+            if (initialPath == null) {
+                initialPath = dir;
+                initialCount = dir.getNameCount();
+            } else {
+                int relativePos = dir.getNameCount() - initialCount;
+                if (relativePos == 1) {
+                    folderSizes.clear();
+                    folderCount.clear();
+                }
+            }
+            folderSizes.putIfAbsent(dir, 0L); // Ensure directory is in the map
+            folderCount.putIfAbsent(dir, new int[] {0, 0});  // Ensure directory count is in the map
+            return FileVisitResult.CONTINUE;
+        }
+        
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            Objects.requireNonNull(dir);
+            
+            if (dir.equals(initialPath)) {
+                return FileVisitResult.TERMINATE;
+            }
+            
+            int relativeLevel = dir.getNameCount() - initialCount;
+            if (relativeLevel == 1) {
+                folderSizes.forEach((key, value) -> {
+                    int level = key.getNameCount() - initialCount - 1;
+                    if (level < printLevel) {
+                        System.out.printf("%s[%s] - %,d bytes %n",
+                                "\t".repeat(level), key.getFileName(), value);
+                    }
+                });
+                
+                folderCount.forEach((k, v) -> {
+                    int level = k.getNameCount() - initialCount - 1;
+                    if (level < printLevel) {
+                        System.out.printf("%s has %d files & %d directories in it. %n", k.getFileName(), v[1], v[0]);
+                    }
+                });
+                
+            } else {
+                long folderSize = folderSizes.get(dir);
+                folderSizes.merge(dir.getParent(), 0L, (o, n) -> o + folderSize);
+                folderCount.merge(dir.getParent(), new int[] {0, 0}, (o, n) -> o = new int[] {o[0]+1, o[1]}); // Increment count for parent directory
+            }
+            return FileVisitResult.CONTINUE;
+        }
+    }
+}
