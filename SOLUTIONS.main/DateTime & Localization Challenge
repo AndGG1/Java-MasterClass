@@ -1,0 +1,103 @@
+ import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+ 
+public class Main {
+ 
+    private record Employee(String name, Locale locale, ZoneId zoneId) {
+ 
+        public Employee(String name, String locale, String zoneId) {
+            this(name, Locale.forLanguageTag(locale), ZoneId.of(zoneId));
+            printInfo();
+        }
+ 
+        public Employee(String name) {
+            this(name, Locale.getDefault(), ZoneId.systemDefault());
+        }
+ 
+        private void printInfo() {
+            System.out.println("-".repeat(75));
+ 
+            Currency localCurrency = null;
+            DateTimeFormatter dtf = null;
+            try {
+                localCurrency = Currency.getInstance(locale);
+                dtf = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
+ 
+            } catch (Exception e) {
+ 
+                System.err.println("Wrong Input Parameters or Unknown Exceptions!");
+                System.err.print("Caused by:");
+                System.err.println(e.getCause() == null ? " Unknown" : e.getCause());
+                return;
+            }
+ 
+            ZonedDateTime zdt = ZonedDateTime.now(zoneId);
+ 
+                //Currency and Name
+                System.out.printf("NAME: %s || Currency of %s: %s [%s] \n", name,
+                locale.getDisplayName(), localCurrency, localCurrency.getCurrencyCode());
+ 
+                //Time
+                System.out.print("Current Time in his region: " + LocalDateTime.ofInstant(Instant.now(),
+                        zoneId).format(dtf.withLocale(locale)));
+                System.out.print(" <-> " + zdt);
+ 
+                //Origin
+                System.out.printf("\n%s lives in %s [%s]\n", name, locale.getCountry(), zoneId.getRules());
+ 
+                //Settings
+            System.out.println(zoneId.getRules().isDaylightSavings(zdt.toInstant()) + " " +
+                    zoneId.getRules().getDaylightSavings(zdt.toInstant()) + " - " + zdt.format(DateTimeFormatter.ofPattern("zzzz z")));
+        }
+ 
+        public void compareDurationWith(Employee emp) {
+            System.out.println("-".repeat(50));
+            System.out.print("Amount of hours different: ");
+            System.out.println(Duration.between(ZonedDateTime.now(zoneId),
+                    ZonedDateTime.of(ZonedDateTime.now(zoneId).toLocalDateTime(), emp.zoneId)).toHours() + " h");
+            System.out.println("-".repeat(50));
+        }
+    }
+ 
+    public static void main(String[] args) {
+ 
+        Employee jane = new Employee("Jane", "en-US", "America/New_York");
+        Employee joe= new Employee("Joe", "en-AU", "Australia/Sydney");
+ 
+        jane.compareDurationWith(joe);
+        joe.compareDurationWith(jane);
+ 
+        schedule(jane, joe, 5);
+    }
+ 
+ 
+    private static Map<LocalDateTime, List<ZonedDateTime>> schedule(Employee emp, Employee emp2, int days) {
+ 
+        Predicate<ZonedDateTime> rules = ztd ->
+                ztd.getDayOfWeek() != DayOfWeek.SATURDAY &&
+                ztd.getDayOfWeek() != DayOfWeek.SUNDAY &&
+                ztd.getHour() > 7 && ztd.getHour() < 21;
+ 
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter dtf = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL, FormatStyle.MEDIUM);
+        var map = today.datesUntil(today.plusDays(days))
+                .map(dt -> dt.atStartOfDay(emp.zoneId))
+                .flatMap(dt -> IntStream.range(0, 24).mapToObj(dt::withHour))
+                .filter(rules)
+                .map(dt -> dt.withZoneSameInstant(emp2.zoneId))
+                .collect(
+                        Collectors.groupingBy(ZonedDateTime::toLocalDateTime,
+                                TreeMap::new,
+                                Collectors.toList())
+                );
+ 
+        map.forEach((k, v) -> v.forEach(dt -> System.out.println(dt.format(dtf.withZone(emp.zoneId)) + " <---> " +
+                dt.format(dtf.withZone(emp2.zoneId)))));
+        return map;
+    }
+}
