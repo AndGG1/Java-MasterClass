@@ -1,0 +1,135 @@
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringJoiner;
+
+class Player implements Serializable {
+    
+    private String name;
+    private transient int topScore = 10;
+    private transient List<String> arr;
+    private static final long serialVersionUID = 1L;
+    private final transient int accountId = 1000;
+    
+    public Player(String name, int topScore, List<String> arr) {
+        this.name = name;
+        this.topScore = topScore;
+        this.arr = arr;
+    }
+    
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Player.class.getSimpleName() + "[", "]")
+                .add("name='" + name + "'")
+                .add("topScore=" + topScore)
+                .add("arr=" + arr)
+                .toString();
+    }
+    
+    @Serial
+    @SuppressWarnings("unchecked")
+    private void readObject(ObjectInputStream stream)
+            throws IOException, ClassNotFoundException {
+//        stream.defaultReadObject();
+//        bigScore = (bigScore == 0) ? 1_000_000_000L : bigScore;
+        
+        name = stream.readUTF();
+    }
+    
+    public String getName() {
+        return name;
+    }
+}
+
+class Main {
+    
+    public static void main(String[] args) throws IOException {
+        Player plr = new Player("Andrei", 200_000_000, new ArrayList<>());
+        //writeObj(Path.of("Data - Serialization"), plr);
+        readObj(Path.of("Data - Serialization"));
+    }
+    
+    private static void writeData(Path dataFile) {
+        
+        try (DataOutputStream ds = new DataOutputStream(
+                new BufferedOutputStream(
+                        new FileOutputStream(dataFile.toFile())))) {
+            
+            int myInt = 17;
+            long myLong = 100_000_000_000_000L;
+            boolean myBoolean = true;
+            char myChar = 'Z';
+            float myFloat = 77.7f;
+            double myDouble = 98.6;
+            String myString = "Hello World";
+            
+            long pos = 0;
+            ds.writeInt(myInt);
+            System.out.println("writeInt writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeLong(myLong);
+            System.out.println("writeLong writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeBoolean(myBoolean);
+            System.out.println("writeBoolean writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeChar(myChar);
+            System.out.println("writeCharacter writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeFloat(myFloat);
+            System.out.println("writeFloat writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeDouble(myDouble);
+            System.out.println("writeDouble writes " + (ds.size() - pos));
+            pos = ds.size();
+            
+            ds.writeUTF(myString);
+            System.out.println("writeUTF writes " + (ds.size() - pos));
+            pos = ds.size();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private static void readData(Path dataFile) {
+        
+        try (DataInputStream dataStream = new DataInputStream(Files.newInputStream(dataFile))) {
+            System.out.println("myInt = " + dataStream.readInt());
+            System.out.println("myLong = " + dataStream.readLong());
+            System.out.println("myBoolean = " + dataStream.readBoolean());
+            System.out.println("myChar = " + dataStream.readChar());
+            System.out.println("myFloat = " + dataStream.readFloat());
+            System.out.println("myDouble = " + dataStream.readDouble());
+            System.out.println("myString = " + dataStream.readUTF());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    @Serial
+    private static void writeObj(Path dataFile, Player plr) {
+        try (ObjectOutputStream objs = new ObjectOutputStream(Files.newOutputStream(dataFile))) {
+            objs.writeObject(plr);
+            objs.writeUTF(plr.getName());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    @Serial
+    private static void readObj(Path dataFile) {
+        try (ObjectInputStream objStream = new ObjectInputStream(Files.newInputStream(dataFile))) {
+            System.out.println(objStream.readObject());
+            System.out.println(objStream.readUTF());
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
