@@ -1,0 +1,335 @@
+package dev.lpa;
+
+import com.mysql.cj.jdbc.MysqlDataSource;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+
+    private static String USE_SCHEMA = "USE storefront";
+
+    private static int MYSQL_DB_NOT_FOUND = 1049;
+
+    public static void main(String[] args) {
+
+        var dataSource = new MysqlDataSource();
+        dataSource.setServerName("localhost");
+        dataSource.setPort(3306);
+        dataSource.setUser(System.getenv("MYSQLUSER"));
+        dataSource.setPassword(System.getenv("MYSQLPASS"));
+
+        try (Connection conn = dataSource.getConnection()) {
+
+            DatabaseMetaData metaData = conn.getMetaData();
+            System.out.println(metaData.getSQLStateType());
+            if (!checkSchema(conn)) {
+                System.out.println("storefront schema does not exist");
+                setUpSchema(conn);
+            }
+
+            deleteOrder(conn, 2);
+//            int newOrder = addOrder(conn, new String[]{"shoes", "shirt", "socks"});
+//            System.out.println("New Order = " + newOrder);
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static boolean checkSchema(Connection conn) throws SQLException {
+
+        try (Statement statement = conn.createStatement()) {
+            statement.execute(USE_SCHEMA);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("SQLState: " + e.getSQLState());
+            System.err.println("Error Code: " + e.getErrorCode());
+            System.err.println("Message: " + e.getMessage());
+
+            if (conn.getMetaData().getDatabaseProductName().equals("MySQL")
+                    && e.getErrorCode() == MYSQL_DB_NOT_FOUND) {
+                return false;
+            } else throw e;
+        }
+        return true;
+    }
+
+    private static void setUpSchema(Connection conn) throws SQLException {
+
+        String createSchema = "CREATE SCHEMA storefront";
+
+        String createOrder = """
+                CREATE TABLE storefront.order (
+                order_id int NOT NULL AUTO_INCREMENT,
+                order_date DATETIME NOT NULL,
+                PRIMARY KEY (order_id)
+                )""";
+
+        String createOrderDetails = """
+                CREATE TABLE storefront.order_details (
+                order_detail_id int NOT NULL AUTO_INCREMENT,
+                item_description text,
+                order_id int DEFAULT NULL,
+                PRIMARY KEY (order_detail_id),
+                KEY FK_ORDERID (order_id),
+                CONSTRAINT FK_ORDERID FOREIGN KEY (order_id)
+                REFERENCES storefront.order (order_id) ON DELETE CASCADE
+                ) """;
+
+        try (Statement statement = conn.createStatement()) {
+
+            System.out.println("Creating storefront Database");
+            statement.execute(createSchema);
+            if (checkSchema(conn)) {
+                statement.execute(createOrder);
+                System.out.println("Successfully Created Order");
+                statement.execute(createOrderDetails);
+                System.out.println("Successfully Created Order Details");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static int addOrder(Connection conn, String[] items) throws SQLException {
+
+        int orderId = -1;
+        String insertOrder = "INSERT INTO storefront.order (order_date) VALUES ('%s')";
+        String insertDetail = "INSERT INTO storefront.order_details " +
+                "(order_id, item_description) values(%d, %s)";
+
+        DateTimeFormatter dtf =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        String orderDateTime = LocalDateTime.now().format(dtf);
+        System.out.println(orderDateTime);
+        String formattedString = insertOrder.formatted(orderDateTime);
+        System.out.println(formattedString);
+
+        String insertOrderAlternative = "INSERT INTO storefront.order (order_date) " +
+                "VALUES ('%1$tF %1$tT')";
+        System.out.println(insertOrderAlternative.formatted(LocalDateTime.now()));
+
+        try (Statement statement = conn.createStatement()) {
+
+            conn.setAutoCommit(false);
+            int inserts = statement.executeUpdate(formattedString,
+                    Statement.RETURN_GENERATED_KEYS);
+
+            if (inserts == 1) {
+                var rs = statement.getGeneratedKeys();
+                if (rs.next()) {
+                    orderId = rs.getInt(1);
+                }
+            }
+
+            int count = 0;
+            for (var item : items) {
+                formattedString = insertDetail.formatted(orderId,
+                        statement.enquoteLiteral(item));
+                inserts = statement.executeUpdate(formattedString);
+                count += inserts;
+            }
+
+            if (count != items.length) {
+                orderId = -1;
+                System.out.println("Number of records inserted doesn't equal items received");
+                conn.rollback();
+            } else {
+                conn.commit();
+            }
+            conn.setAutoCommit(true);
+        } catch (SQLException e) {
+            conn.rollback();
+            throw new RuntimeException(e);
+        }
+
+        return orderId;
+    }
+
+    private static void deleteOrder(Connection conn, int orderId) throws SQLException {
+
+        String deleteOrder = "DELETE FROM %s where order_id=%d";
+        String parentQuery = deleteOrder.formatted("storefront.order", orderId);
+        String childQuery = deleteOrder.formatted("storefront.order_details",
+                orderId);
+
+        try (Statement statement = conn.createStatement()) {
+            conn.setAutoCommit(false);
+            int deletedRecords = statement.executeUpdate(childQuery);
+            System.out.printf("%d child records deleted%n", deletedRecords);
+            deletedRecords = statement.executeUpdate(parentQuery);
+            if (deletedRecords == 1) {
+                conn.commit();
+                System.out.printf("Order %d was successfully deleted%n", orderId);
+            } else {
+                conn.rollback();
+            }
+        } catch (SQLException e) {
+            conn.rollback();
+            throw new RuntimeException(e);
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+}
+
+package dev.lpa;
+
+import com.mysql.cj.jdbc.MysqlDataSource;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Scanner;
+
+record OrderDetail(int orderDetailId, String itemDescription, int qty) {
+
+    public OrderDetail(String itemDescription, int qty) {
+        this(-1, itemDescription, qty);
+    }
+}
+
+record Order(int orderId, String dateString, List<OrderDetail> details) {
+
+    public Order(String dateString) {
+        this(-1, dateString, new ArrayList<>());
+    }
+
+    public void addDetail(String itemDescription, int qty) {
+        OrderDetail item = new OrderDetail(itemDescription, qty);
+        details.add(item);
+    }
+}
+
+public class Challenge2 {
+
+    public static void main(String[] args) {
+
+        var dataSource = new MysqlDataSource();
+        dataSource.setServerName("localhost");
+        dataSource.setPort(3306);
+        dataSource.setUser(System.getenv("MYSQLUSER"));
+        dataSource.setPassword(System.getenv("MYSQLPASS"));
+        List<Order> orders = readData();
+
+        try (Connection conn = dataSource.getConnection()) {
+
+//            String alterString =
+//                    "ALTER TABLE storefront.order_details ADD COLUMN quantity INT";
+//            Statement statement = conn.createStatement();
+//            statement.execute(alterString);
+
+            addOrders(conn, orders);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static List<Order> readData() {
+
+        List<Order> vals = new ArrayList<>();
+
+        try (Scanner scanner = new Scanner(Path.of("Orders.csv"))) {
+
+            scanner.useDelimiter("[,\\n]");
+            var list = scanner.tokens().map(String::trim).toList();
+
+            for (int i = 0; i < list.size(); i++) {
+
+                String value = list.get(i);
+                if (value.equals("order")) {
+                    var date = list.get(++i);
+                    vals.add(new Order(date));
+                } else if (value.equals("item")) {
+                    var qty = Integer.parseInt(list.get(++i));
+                    var description = list.get(++i);
+                    Order order = vals.get(vals.size() - 1);
+                    order.addDetail(description, qty);
+                }
+            }
+            vals.forEach(System.out::println);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return vals;
+    }
+
+    private static void addOrder(Connection conn, PreparedStatement psOrder,
+                                 PreparedStatement psDetail, Order order)
+            throws SQLException {
+
+        try {
+            conn.setAutoCommit(false);
+            int orderId = -1;
+            psOrder.setString(1, order.dateString());
+            if (psOrder.executeUpdate() == 1) {
+                var rs = psOrder.getGeneratedKeys();
+                if (rs.next()) {
+                    orderId = rs.getInt(1);
+                    System.out.println("orderId = " + orderId);
+
+                    if (orderId > -1) {
+                        psDetail.setInt(1, orderId);
+                        for (OrderDetail od : order.details()) {
+                            psDetail.setString(2, od.itemDescription());
+                            psDetail.setInt(3, od.qty());
+                            psDetail.addBatch();
+                        }
+                        int[] data = psDetail.executeBatch();
+                        int rowsInserted = Arrays.stream(data).sum();
+                        if (rowsInserted != order.details().size()) {
+                            throw new SQLException("Inserts don't match");
+                        }
+                    }
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
+    private static void addOrders(Connection conn, List<Order> orders) {
+
+        String insertOrder = "INSERT INTO storefront.order (order_date) VALUES (?)";
+        String insertDetail = "INSERT INTO storefront.order_details " +
+                "(order_id, item_description, quantity) values(?, ?, ?)";
+
+        try (
+                PreparedStatement psOrder = conn.prepareStatement(insertOrder,
+                        Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement psDetail = conn.prepareStatement(insertDetail,
+                        Statement.RETURN_GENERATED_KEYS);
+        ) {
+
+            orders.forEach((o) -> {
+                try {
+                    addOrder(conn, psOrder, psDetail, o);
+                } catch (SQLException e) {
+                    System.err.printf("%d (%s) %s%n", e.getErrorCode(),
+                            e.getSQLState(), e.getMessage());
+                    System.err.println("Problem: " + psOrder);
+                    System.err.println("Order: " + o);
+                }
+            });
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
